@@ -1,0 +1,2206 @@
+<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ocean Guardian - Ocean Cleanup</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: #150a1f;
+        color: white;
+        overflow: hidden;
+    }
+
+    #gameContainer {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #7a3b5e;
+    }
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* ---------------- HUD ---------------- */
+
+    #hud {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        right: 70px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    .hudBox {
+        background: rgba(45, 12, 28, 0.75);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 12px;
+        padding: 10px 16px;
+        backdrop-filter: blur(6px);
+        font-weight: bold;
+    }
+
+    #cleanBarContainer {
+        width: 180px;
+        height: 12px;
+        background: rgba(0,0,0,0.4);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+
+    #cleanBar {
+        width: 0%;
+        height: 100%;
+        background: #ffcf5c;
+        transition: width 0.3s;
+    }
+
+    #healthBarContainer {
+        width: 180px;
+        height: 12px;
+        background: rgba(0,0,0,0.4);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+
+    #healthBar {
+        width: 100%;
+        height: 100%;
+        background: #ff4d4d;
+        transition: width 0.2s, background 0.2s;
+    }
+
+    /* ---------------- MENUS ---------------- */
+
+    .screen {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background:
+            linear-gradient(
+                rgba(35,8,25,0.45),
+                rgba(35,8,25,0.85)
+            );
+        z-index: 20;
+    }
+
+    .panel {
+        width: min(650px, 90%);
+        padding: 40px;
+        background: rgba(42, 12, 32, 0.92);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+        font-size: clamp(40px, 7vw, 75px);
+        color: #ffb454;
+        margin-bottom: 10px;
+        text-shadow: 0 0 20px rgba(255,180,84,0.4);
+    }
+
+    h2 {
+        color: #ffb454;
+        margin-bottom: 20px;
+    }
+
+    .subtitle {
+        color: #ffd9c2;
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
+
+    button {
+        border: none;
+        padding: 14px 30px;
+        margin: 7px;
+        border-radius: 10px;
+        background: #ff7b54;
+        color: white;
+        font-size: 17px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    button:hover {
+        background: #ff9770;
+        transform: translateY(-2px);
+    }
+
+    button.secondary {
+        background: #4a2a4a;
+    }
+
+    .instructions {
+        text-align: left;
+        margin: 20px 0;
+        line-height: 2;
+        color: #ffe9d6;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    /* ---------------- FACT CARD ---------------- */
+
+    #factText {
+        font-size: 20px;
+        line-height: 1.7;
+        color: #ffe9d6;
+        margin: 25px 0;
+    }
+
+    /* ---------------- RESULT ---------------- */
+
+    .resultGrid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin: 25px 0;
+    }
+
+    .resultItem {
+        background: rgba(255,255,255,0.07);
+        border-radius: 12px;
+        padding: 15px;
+    }
+
+    .resultNumber {
+        font-size: 28px;
+        color: #ffb454;
+        font-weight: bold;
+    }
+
+    /* ---------------- MOBILE CONTROLS ---------------- */
+
+    #mobileControls {
+        position: absolute;
+        bottom: 25px;
+        left: 25px;
+        right: 25px;
+        display: none;
+        justify-content: space-between;
+        z-index: 15;
+        pointer-events: none;
+    }
+
+    .controlGroup {
+        display: grid;
+        grid-template-columns: repeat(3, 55px);
+        grid-template-rows: repeat(2, 55px);
+        gap: 5px;
+        pointer-events: auto;
+    }
+
+    .mobileBtn {
+        width: 55px;
+        height: 55px;
+        margin: 0;
+        padding: 0;
+        background: rgba(0,30,45,0.75);
+        border: 1px solid rgba(255,255,255,0.25);
+        font-size: 20px;
+        user-select: none;
+    }
+
+    #pauseButton {
+        position: absolute;
+        right: 20px;
+        bottom: 20px;
+        z-index: 15;
+        display: none;
+    }
+
+    #muteButton {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 30;
+        width: 46px;
+        height: 46px;
+        margin: 0;
+        padding: 0;
+        border-radius: 50%;
+        background: rgba(45, 12, 28, 0.75);
+        border: 1px solid rgba(255,255,255,0.25);
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    @media (max-width: 800px) {
+        #mobileControls {
+            display: flex;
+        }
+
+        #pauseButton {
+            display: block;
+        }
+
+        #muteButton {
+            width: 38px;
+            height: 38px;
+            top: 10px;
+            right: 10px;
+            font-size: 16px;
+        }
+
+        .panel {
+            padding: 25px;
+        }
+
+        .hudBox {
+            padding: 7px 10px;
+            font-size: 13px;
+        }
+
+        #cleanBarContainer {
+            width: 120px;
+        }
+
+        #healthBarContainer {
+            width: 120px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="gameContainer">
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+
+        <div class="hudBox">
+            LEVEL <span id="levelText">1</span>
+        </div>
+
+        <div class="hudBox">
+            SCORE: <span id="scoreText">0</span>
+        </div>
+
+        <div class="hudBox">
+            HEALTH
+            <div id="healthBarContainer">
+                <div id="healthBar"></div>
+            </div>
+        </div>
+
+        <div class="hudBox">
+            WASTE: <span id="wasteText">0/20</span>
+        </div>
+
+        <div class="hudBox">
+            TIME: <span id="timeText">60</span>
+        </div>
+
+        <div class="hudBox">
+            OCEAN CLEAN
+            <div id="cleanBarContainer">
+                <div id="cleanBar"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN MENU -->
+    <div id="mainMenu" class="screen">
+
+        <div class="panel">
+
+            <h1>OCEAN<br>GUARDIAN</h1>
+
+            <p class="subtitle">
+                Become an Ocean Guardian.<br>
+                Clean the ocean. Protect marine life.
+            </p>
+
+            <button onclick="showInstructions()">
+                START MISSION
+            </button>
+
+            <button class="secondary" onclick="showAbout()">
+                WHY IT MATTERS
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- INSTRUCTIONS -->
+    <div id="instructionsScreen" class="screen hidden">
+
+        <div class="panel">
+
+            <h2>MISSION BRIEFING</h2>
+
+            <div class="instructions">
+                🛥️ <b>Move:</b> WASD or Arrow Keys<br>
+                🗑️ <b>Collect:</b> Touch floating waste<br>
+                🦈 <b>Protect:</b> Avoid marine animals<br>
+                ⏱️ <b>Time:</b> Complete the cleanup before time runs out<br>
+                ⭐ <b>Goal:</b> Collect enough waste to clean the ocean
+            </div>
+
+            <button onclick="startGame()">
+                BEGIN CLEANUP
+            </button>
+
+            <button class="secondary" onclick="showMainMenu()">
+                BACK
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- ABOUT -->
+    <div id="aboutScreen" class="screen hidden">
+
+        <div class="panel">
+
+            <h2>WHY OCEAN CLEANUP?</h2>
+
+            <p class="subtitle">
+                Plastic pollution can harm marine animals,
+                damage ecosystems and enter the food chain.
+            </p>
+
+            <p class="subtitle">
+                This game turns cleanup into a simple interactive
+                challenge to encourage awareness and responsible
+                environmental behaviour.
+            </p>
+
+            <button onclick="showMainMenu()">
+                BACK
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- LEVEL COMPLETE -->
+    <div id="levelComplete" class="screen hidden">
+
+        <div class="panel">
+
+            <h2>MISSION COMPLETE!</h2>
+
+            <div class="resultGrid">
+
+                <div class="resultItem">
+                    <div class="resultNumber" id="levelScore">0</div>
+                    <small>SCORE</small>
+                </div>
+
+                <div class="resultItem">
+                    <div class="resultNumber" id="levelWaste">0</div>
+                    <small>WASTE COLLECTED</small>
+                </div>
+
+            </div>
+
+            <button onclick="nextLevel()">
+                NEXT MISSION
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- FACT -->
+    <div id="factScreen" class="screen hidden">
+
+        <div class="panel">
+
+            <h2>OCEAN FACT</h2>
+
+            <p id="factText"></p>
+
+            <button onclick="continueAfterFact()">
+                CONTINUE
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="gameOver" class="screen hidden">
+
+        <div class="panel">
+
+            <h2>MISSION FAILED</h2>
+
+            <p class="subtitle">
+                The ocean still needs your help.
+            </p>
+
+            <div class="resultGrid">
+
+                <div class="resultItem">
+                    <div class="resultNumber" id="finalScore">0</div>
+                    <small>SCORE</small>
+                </div>
+
+                <div class="resultItem">
+                    <div class="resultNumber" id="finalWaste">0</div>
+                    <small>WASTE COLLECTED</small>
+                </div>
+
+            </div>
+
+            <button onclick="startGame()">
+                TRY AGAIN
+            </button>
+
+            <button class="secondary" onclick="showMainMenu()">
+                MAIN MENU
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- FINAL RESULT -->
+    <div id="finalScreen" class="screen hidden">
+
+        <div class="panel">
+
+            <h2>OCEAN GUARDIAN</h2>
+
+            <p class="subtitle">
+                You completed all cleanup missions!
+            </p>
+
+            <div class="resultGrid">
+
+                <div class="resultItem">
+                    <div class="resultNumber" id="totalScore">0</div>
+                    <small>TOTAL SCORE</small>
+                </div>
+
+                <div class="resultItem">
+                    <div class="resultNumber" id="totalWaste">0</div>
+                    <small>TOTAL WASTE</small>
+                </div>
+
+            </div>
+
+            <p class="subtitle">
+                Every piece of waste removed from the environment
+                represents a step toward a healthier ocean.
+            </p>
+
+            <button onclick="showMainMenu()">
+                PLAY AGAIN
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- MOBILE CONTROLS -->
+    <div id="mobileControls">
+
+        <div class="controlGroup">
+
+            <div></div>
+
+            <button class="mobileBtn"
+                    onpointerdown="keys.up=true"
+                    onpointerup="keys.up=false">
+                ▲
+            </button>
+
+            <div></div>
+
+            <button class="mobileBtn"
+                    onpointerdown="keys.left=true"
+                    onpointerup="keys.left=false">
+                ◀
+            </button>
+
+            <button class="mobileBtn"
+                    onpointerdown="keys.down=true"
+                    onpointerup="keys.down=false">
+                ▼
+            </button>
+
+            <button class="mobileBtn"
+                    onpointerdown="keys.right=true"
+                    onpointerup="keys.right=false">
+                ▶
+            </button>
+
+        </div>
+
+    </div>
+
+    <button id="muteButton" onclick="toggleMute()" title="Mute / Unmute">🔊</button>
+
+    <button id="pauseButton" onclick="togglePause()">
+        PAUSE
+    </button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   CANVAS
+========================================================= */
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let width;
+let height;
+
+function resizeCanvas() {
+
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+
+}
+
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+
+/* =========================================================
+   AUDIO ENGINE (procedural — no external files needed)
+========================================================= */
+
+let audioCtx = null;
+let masterGain = null;
+let musicGain = null;
+let musicInterval = null;
+let isMuted = false;
+
+function initAudio() {
+
+    if (audioCtx)
+        return;
+
+    audioCtx =
+        new (window.AudioContext || window.webkitAudioContext)();
+
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = isMuted ? 0 : 0.5;
+    masterGain.connect(audioCtx.destination);
+
+    musicGain = audioCtx.createGain();
+    musicGain.gain.value = 0.5;
+    musicGain.connect(masterGain);
+
+}
+
+function resumeAudio() {
+
+    if (!audioCtx)
+        initAudio();
+
+    if (audioCtx.state === "suspended")
+        audioCtx.resume();
+
+}
+
+function playTone(freq, duration, type, volume, delay) {
+
+    if (!audioCtx)
+        return;
+
+    delay = delay || 0;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = type || "sine";
+    osc.frequency.value = freq;
+
+    const now = audioCtx.currentTime + delay;
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volume || 0.2, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    gain.connect(masterGain);
+
+    osc.start(now);
+    osc.stop(now + duration + 0.05);
+
+}
+
+function playCollectSound() {
+
+    playTone(660, 0.12, "sine", 0.25);
+    playTone(880, 0.12, "sine", 0.2, 0.05);
+
+}
+
+function playHitSound() {
+
+    playTone(160, 0.25, "sawtooth", 0.3);
+    playTone(90, 0.3, "square", 0.2, 0.05);
+
+}
+
+function playLevelCompleteSound() {
+
+    [523, 659, 784, 1046].forEach((f, i) => {
+        playTone(f, 0.25, "triangle", 0.25, i * 0.12);
+    });
+
+}
+
+function playGameOverSound() {
+
+    [392, 349, 311, 261].forEach((f, i) => {
+        playTone(f, 0.35, "sawtooth", 0.25, i * 0.18);
+    });
+
+}
+
+function playClickSound() {
+
+    playTone(440, 0.08, "square", 0.15);
+
+}
+
+const musicScale =
+    [220, 246.94, 261.63, 293.66, 329.63, 392, 440, 493.88];
+
+function playMusicNote(freq) {
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.value = freq;
+
+    const now = audioCtx.currentTime;
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+    osc.connect(gain);
+    gain.connect(musicGain);
+
+    osc.start(now);
+    osc.stop(now + 1.5);
+
+}
+
+function startMusic() {
+
+    if (!audioCtx)
+        return;
+
+    stopMusic();
+
+    musicInterval = setInterval(() => {
+
+        if (!gameRunning || paused)
+            return;
+
+        const freq =
+            musicScale[
+                Math.floor(Math.random() * musicScale.length)
+            ];
+
+        playMusicNote(freq);
+
+    }, 550);
+
+}
+
+function stopMusic() {
+
+    if (musicInterval) {
+
+        clearInterval(musicInterval);
+
+        musicInterval = null;
+
+    }
+
+}
+
+function toggleMute() {
+
+    resumeAudio();
+
+    isMuted = !isMuted;
+
+    if (masterGain)
+        masterGain.gain.value = isMuted ? 0 : 0.5;
+
+    document.getElementById("muteButton").textContent =
+        isMuted ? "🔇" : "🔊";
+
+}
+
+
+/* =========================================================
+   GAME VARIABLES
+========================================================= */
+
+let gameRunning = false;
+let paused = false;
+
+let currentLevel = 1;
+
+let score = 0;
+let wasteCollected = 0;
+
+let levelWasteTarget = 20;
+
+let timeLeft = 60;
+
+let lastTime = 0;
+
+let maxHealth = 100;
+let health = maxHealth;
+
+let invulnerable = false;
+let invulnerableTimer = 0;
+
+const HIT_DAMAGE = 20;
+const INVULNERABLE_TIME = 1;
+
+let waste = [];
+let animals = [];
+let bubbles = [];
+let particles = [];
+
+
+/* =========================================================
+   LEVEL SETTINGS
+========================================================= */
+
+const levels = {
+
+    1: {
+        target: 20,
+        time: 60,
+        wasteCount: 25,
+        animalCount: 3
+    },
+
+    2: {
+        target: 35,
+        time: 65,
+        wasteCount: 45,
+        animalCount: 5
+    },
+
+    3: {
+        target: 50,
+        time: 75,
+        wasteCount: 65,
+        animalCount: 7
+    },
+
+    4: {
+        target: 70,
+        time: 85,
+        wasteCount: 90,
+        animalCount: 10
+    },
+
+    5: {
+        target: 100,
+        time: 100,
+        wasteCount: 125,
+        animalCount: 13
+    }
+
+};
+
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+const player = {
+
+    x: 0,
+    y: 0,
+
+    width: 70,
+    height: 38,
+
+    speed: 320,
+
+    rotation: 0
+
+};
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+const keys = {
+
+    up: false,
+    down: false,
+    left: false,
+    right: false
+
+};
+
+
+window.addEventListener("keydown", e => {
+
+    if (e.key === "ArrowUp" || e.key.toLowerCase() === "w")
+        keys.up = true;
+
+    if (e.key === "ArrowDown" || e.key.toLowerCase() === "s")
+        keys.down = true;
+
+    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a")
+        keys.left = true;
+
+    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d")
+        keys.right = true;
+
+    if (e.key === "Escape")
+        togglePause();
+
+});
+
+
+window.addEventListener("keyup", e => {
+
+    if (e.key === "ArrowUp" || e.key.toLowerCase() === "w")
+        keys.up = false;
+
+    if (e.key === "ArrowDown" || e.key.toLowerCase() === "s")
+        keys.down = false;
+
+    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a")
+        keys.left = false;
+
+    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d")
+        keys.right = false;
+
+});
+
+
+/* =========================================================
+   UI FUNCTIONS
+========================================================= */
+
+function hideAllScreens() {
+
+    document.querySelectorAll(".screen").forEach(screen => {
+        screen.classList.add("hidden");
+    });
+
+}
+
+
+function showMainMenu() {
+
+    resumeAudio();
+
+    playClickSound();
+
+    stopMusic();
+
+    gameRunning = false;
+    paused = false;
+
+    hideAllScreens();
+
+    document.getElementById("mainMenu").classList.remove("hidden");
+
+    document.getElementById("hud").classList.add("hidden");
+
+}
+
+
+function showInstructions() {
+
+    resumeAudio();
+
+    playClickSound();
+
+    hideAllScreens();
+
+    document.getElementById("instructionsScreen")
+        .classList.remove("hidden");
+
+}
+
+
+function showAbout() {
+
+    resumeAudio();
+
+    playClickSound();
+
+    hideAllScreens();
+
+    document.getElementById("aboutScreen")
+        .classList.remove("hidden");
+
+}
+
+
+/* =========================================================
+   START GAME
+========================================================= */
+
+function startGame() {
+
+    resumeAudio();
+
+    playClickSound();
+
+    currentLevel = 1;
+
+    score = 0;
+
+    health = maxHealth;
+
+    invulnerable = false;
+
+    invulnerableTimer = 0;
+
+    hideAllScreens();
+
+    startLevel();
+
+}
+
+
+function startLevel() {
+
+    const settings = levels[currentLevel];
+
+    levelWasteTarget = settings.target;
+
+    timeLeft = settings.time;
+
+    wasteCollected = 0;
+
+    health = maxHealth;
+
+    invulnerable = false;
+
+    invulnerableTimer = 0;
+
+    gameRunning = true;
+
+    paused = false;
+
+    player.x = width / 2;
+
+    player.y = height / 2;
+
+    waste = [];
+
+    animals = [];
+
+    particles = [];
+
+    createWaste(settings.wasteCount);
+
+    createAnimals(settings.animalCount);
+
+    createBubbles();
+
+    updateHUD();
+
+    document.getElementById("hud").classList.remove("hidden");
+
+    startMusic();
+
+    lastTime = performance.now();
+
+}
+
+
+/* =========================================================
+   CREATE WASTE
+========================================================= */
+
+const wasteTypes = [
+
+    {
+        name: "Bottle",
+        symbol: "🧃",
+        points: 10
+    },
+
+    {
+        name: "Can",
+        symbol: "🥫",
+        points: 15
+    },
+
+    {
+        name: "Bag",
+        symbol: "🛍️",
+        points: 20
+    },
+
+    {
+        name: "Plastic",
+        symbol: "🧴",
+        points: 15
+    },
+
+    {
+        name: "Cup",
+        symbol: "🥤",
+        points: 12
+    },
+
+    {
+        name: "Tire",
+        symbol: "🛞",
+        points: 25
+    }
+
+];
+
+
+function createWaste(amount) {
+
+    for (let i = 0; i < amount; i++) {
+
+        const type =
+            wasteTypes[
+                Math.floor(Math.random() * wasteTypes.length)
+            ];
+
+        waste.push({
+
+            x: Math.random() * width,
+
+            y:
+                100 +
+                Math.random() *
+                Math.max(100, height - 180),
+
+            size: 25 + Math.random() * 10,
+
+            type: type,
+
+            collected: false,
+
+            phase: Math.random() * Math.PI * 2
+
+        });
+
+    }
+
+}
+
+
+/* =========================================================
+   CREATE ANIMALS
+========================================================= */
+
+function createAnimals(amount) {
+
+    const animalTypes = ["🦈", "🐙", "🦑", "🦀", "🐡"];
+
+    for (let i = 0; i < amount; i++) {
+
+        animals.push({
+
+            x: Math.random() * width,
+
+            y:
+                100 +
+                Math.random() *
+                Math.max(100, height - 180),
+
+            size: 35 + Math.random() * 15,
+
+            speed:
+                30 +
+                Math.random() * 50,
+
+            direction:
+                Math.random() > 0.5 ? 1 : -1,
+
+            symbol:
+                animalTypes[
+                    Math.floor(Math.random() * animalTypes.length)
+                ],
+
+            phase: Math.random() * Math.PI * 2
+
+        });
+
+    }
+
+}
+
+
+/* =========================================================
+   BUBBLES
+========================================================= */
+
+function createBubbles() {
+
+    bubbles = [];
+
+    for (let i = 0; i < 70; i++) {
+
+        bubbles.push({
+
+            x: Math.random() * width,
+
+            y: Math.random() * height,
+
+            size: 2 + Math.random() * 5,
+
+            speed: 10 + Math.random() * 20
+
+        });
+
+    }
+
+}
+
+
+/* =========================================================
+   UPDATE PLAYER
+========================================================= */
+
+function updatePlayer(dt) {
+
+    let dx = 0;
+    let dy = 0;
+
+    if (keys.left) dx--;
+    if (keys.right) dx++;
+    if (keys.up) dy--;
+    if (keys.down) dy++;
+
+    if (dx !== 0 || dy !== 0) {
+
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        dx /= length;
+        dy /= length;
+
+        player.x += dx * player.speed * dt;
+        player.y += dy * player.speed * dt;
+
+        if (dx !== 0 || dy !== 0) {
+
+            player.rotation =
+                Math.atan2(dy, dx);
+
+        }
+
+    }
+
+    const margin = 40;
+
+    player.x =
+        Math.max(
+            margin,
+            Math.min(width - margin, player.x)
+        );
+
+    player.y =
+        Math.max(
+            90,
+            Math.min(height - margin, player.y)
+        );
+
+    if (invulnerable) {
+
+        invulnerableTimer -= dt;
+
+        if (invulnerableTimer <= 0) {
+
+            invulnerable = false;
+
+            invulnerableTimer = 0;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   UPDATE ANIMALS
+========================================================= */
+
+function updateAnimals(dt) {
+
+    animals.forEach(animal => {
+
+        animal.x +=
+            animal.speed *
+            animal.direction *
+            dt;
+
+        animal.y +=
+            Math.sin(
+                performance.now() * 0.002 +
+                animal.phase
+            ) *
+            10 *
+            dt;
+
+        if (animal.x < -50)
+            animal.x = width + 50;
+
+        if (animal.x > width + 50)
+            animal.x = -50;
+
+    });
+
+}
+
+
+/* =========================================================
+   UPDATE BUBBLES
+========================================================= */
+
+function updateBubbles(dt) {
+
+    bubbles.forEach(bubble => {
+
+        bubble.y -= bubble.speed * dt;
+
+        if (bubble.y < -10) {
+
+            bubble.y = height + 10;
+
+            bubble.x = Math.random() * width;
+
+        }
+
+    });
+
+}
+
+
+/* =========================================================
+   COLLISION
+========================================================= */
+
+function distance(a, b) {
+
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+
+    return Math.sqrt(dx * dx + dy * dy);
+
+}
+
+
+function checkCollisions() {
+
+    /* Waste collision */
+
+    waste.forEach(item => {
+
+        if (item.collected)
+            return;
+
+        const d =
+            distance(player, item);
+
+        if (d < 50) {
+
+            item.collected = true;
+
+            wasteCollected++;
+
+            score += item.type.points;
+
+            playCollectSound();
+
+            createParticles(
+                item.x,
+                item.y
+            );
+
+            updateHUD();
+
+            if (wasteCollected >= levelWasteTarget) {
+
+                levelComplete();
+
+            }
+
+        }
+
+    });
+
+
+    /* Animal collision */
+
+    if (!invulnerable) {
+
+        animals.forEach(animal => {
+
+            if (invulnerable)
+                return;
+
+            const d =
+                distance(player, animal);
+
+            if (d < 55) {
+
+                health =
+                    Math.max(
+                        0,
+                        health - HIT_DAMAGE
+                    );
+
+                invulnerable = true;
+
+                invulnerableTimer =
+                    INVULNERABLE_TIME;
+
+                playHitSound();
+
+                player.x -=
+                    animal.direction * 40;
+
+                createParticles(
+                    player.x,
+                    player.y
+                );
+
+                updateHUD();
+
+                if (health <= 0) {
+
+                    gameOver();
+
+                }
+
+            }
+
+        });
+
+    }
+
+}
+
+
+/* =========================================================
+   PARTICLES
+========================================================= */
+
+function createParticles(x, y) {
+
+    for (let i = 0; i < 12; i++) {
+
+        particles.push({
+
+            x: x,
+
+            y: y,
+
+            vx:
+                (Math.random() - 0.5) * 150,
+
+            vy:
+                (Math.random() - 0.5) * 150,
+
+            life: 1
+
+        });
+
+    }
+
+}
+
+
+function updateParticles(dt) {
+
+    particles.forEach(p => {
+
+        p.x += p.vx * dt;
+
+        p.y += p.vy * dt;
+
+        p.life -= dt * 2;
+
+    });
+
+    particles =
+        particles.filter(
+            p => p.life > 0
+        );
+
+}
+
+
+/* =========================================================
+   TIMER
+========================================================= */
+
+function updateTimer(dt) {
+
+    timeLeft -= dt;
+
+    if (timeLeft <= 0) {
+
+        timeLeft = 0;
+
+        gameOver();
+
+    }
+
+    updateHUD();
+
+}
+
+
+/* =========================================================
+   HUD
+========================================================= */
+
+function updateHUD() {
+
+    document.getElementById("levelText")
+        .textContent = currentLevel;
+
+    document.getElementById("scoreText")
+        .textContent = score;
+
+    document.getElementById("wasteText")
+        .textContent =
+        wasteCollected +
+        "/" +
+        levelWasteTarget;
+
+    document.getElementById("timeText")
+        .textContent =
+        Math.ceil(timeLeft);
+
+    const percentage =
+        Math.min(
+            100,
+            (wasteCollected /
+                levelWasteTarget) *
+            100
+        );
+
+    document.getElementById("cleanBar")
+        .style.width =
+        percentage + "%";
+
+    const healthPercentage =
+        Math.max(
+            0,
+            Math.min(100, (health / maxHealth) * 100)
+        );
+
+    const healthBar =
+        document.getElementById("healthBar");
+
+    healthBar.style.width =
+        healthPercentage + "%";
+
+    healthBar.style.background =
+        healthPercentage > 50 ?
+            "#42e879" :
+            healthPercentage > 25 ?
+                "#f2c14b" :
+                "#ff4d4d";
+
+}
+
+
+/* =========================================================
+   DRAW OCEAN
+========================================================= */
+
+function drawOcean() {
+
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            height
+        );
+
+    gradient.addColorStop(
+        0,
+        "#d97a5f"
+    );
+
+    gradient.addColorStop(
+        0.5,
+        "#8a3d6b"
+    );
+
+    gradient.addColorStop(
+        1,
+        "#2c0f42"
+    );
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+
+    /* Ocean waves */
+
+    ctx.strokeStyle =
+        "rgba(255,255,255,0.12)";
+
+    ctx.lineWidth = 2;
+
+    for (
+        let y = 100;
+        y < height;
+        y += 70
+    ) {
+
+        ctx.beginPath();
+
+        for (
+            let x = 0;
+            x < width;
+            x += 30
+        ) {
+
+            const wave =
+                Math.sin(
+                    x * 0.025 +
+                    performance.now() * 0.001
+                ) * 4;
+
+            ctx.lineTo(
+                x,
+                y + wave
+            );
+
+        }
+
+        ctx.stroke();
+
+    }
+
+}
+
+
+/* =========================================================
+   DRAW BUBBLES
+========================================================= */
+
+function drawBubbles() {
+
+    bubbles.forEach(bubble => {
+
+        ctx.beginPath();
+
+        ctx.arc(
+            bubble.x,
+            bubble.y,
+            bubble.size,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.strokeStyle =
+            "rgba(255,255,255,0.25)";
+
+        ctx.stroke();
+
+    });
+
+}
+
+
+/* =========================================================
+   DRAW WASTE
+========================================================= */
+
+function drawWaste() {
+
+    waste.forEach(item => {
+
+        if (item.collected)
+            return;
+
+        const bob =
+            Math.sin(
+                performance.now() * 0.002 +
+                item.phase
+            ) * 5;
+
+        ctx.font =
+            item.size + "px Arial";
+
+        ctx.textAlign = "center";
+
+        ctx.textBaseline = "middle";
+
+        ctx.fillText(
+            item.type.symbol,
+            item.x,
+            item.y + bob
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   DRAW ANIMALS
+========================================================= */
+
+function drawAnimals() {
+
+    animals.forEach(animal => {
+
+        ctx.save();
+
+        ctx.translate(
+            animal.x,
+            animal.y
+        );
+
+        if (animal.direction < 0)
+            ctx.scale(-1, 1);
+
+        ctx.font =
+            animal.size + "px Arial";
+
+        ctx.textAlign = "center";
+
+        ctx.textBaseline = "middle";
+
+        ctx.fillText(
+            animal.symbol,
+            0,
+            0
+        );
+
+        ctx.restore();
+
+    });
+
+}
+
+
+/* =========================================================
+   DRAW PLAYER BOAT
+========================================================= */
+
+function roundRectPath(x, y, w, h, r) {
+
+    ctx.beginPath();
+
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+
+    ctx.closePath();
+
+}
+
+
+function drawPlayer() {
+
+    ctx.save();
+
+    ctx.translate(
+        player.x,
+        player.y
+    );
+
+    ctx.rotate(
+        player.rotation
+    );
+
+    if (invulnerable) {
+
+        ctx.globalAlpha =
+            0.5 +
+            0.5 *
+            Math.sin(
+                performance.now() * 0.02
+            );
+
+    }
+
+
+    /* Wake foam trailing the stern */
+
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(-38, -7);
+    ctx.quadraticCurveTo(-55, -11, -64, -5);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-38, 7);
+    ctx.quadraticCurveTo(-55, 11, -64, 5);
+    ctx.stroke();
+
+
+    /* Boat shadow */
+
+    ctx.fillStyle =
+        "rgba(0,0,0,0.2)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        0,
+        16,
+        42,
+        9,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    /* Hull - smooth rounded shape */
+
+    ctx.fillStyle = "#f4ece2";
+
+    ctx.beginPath();
+
+    ctx.moveTo(38, 0);
+    ctx.quadraticCurveTo(30, -15, 10, -16);
+    ctx.lineTo(-28, -16);
+    ctx.quadraticCurveTo(-40, -16, -40, 0);
+    ctx.quadraticCurveTo(-40, 16, -28, 16);
+    ctx.lineTo(10, 16);
+    ctx.quadraticCurveTo(30, 15, 38, 0);
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* Waterline stripe */
+
+    ctx.fillStyle = "#ff7b54";
+
+    ctx.beginPath();
+
+    ctx.moveTo(34, 4);
+    ctx.quadraticCurveTo(27, -3, 10, -4);
+    ctx.lineTo(-28, -4);
+    ctx.quadraticCurveTo(-37, -4, -37, 4);
+    ctx.quadraticCurveTo(-37, 11, -27, 11);
+    ctx.lineTo(8, 11);
+    ctx.quadraticCurveTo(26, 10, 34, 4);
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* Cabin */
+
+    ctx.fillStyle = "#ffffff";
+
+    roundRectPath(-13, -13, 24, 19, 5);
+
+    ctx.fill();
+
+
+    /* Porthole window */
+
+    ctx.fillStyle = "#ffcf5c";
+
+    ctx.beginPath();
+    ctx.arc(-1, -4, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#3a1f38";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+
+    /* Antenna */
+
+    ctx.strokeStyle = "#3a1f38";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(-1, -13);
+    ctx.lineTo(-1, -25);
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffcf5c";
+    ctx.beginPath();
+    ctx.arc(-1, -27, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+
+    /* Guardian flag */
+
+    ctx.strokeStyle = "#3a1f38";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(-26, -16);
+    ctx.lineTo(-26, -29);
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffb454";
+    ctx.beginPath();
+    ctx.moveTo(-26, -29);
+    ctx.lineTo(-26, -21);
+    ctx.lineTo(-14, -25);
+    ctx.closePath();
+    ctx.fill();
+
+
+    /* Cleanup net (mesh trail) */
+
+    ctx.strokeStyle = "#ffcf5c";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(-8, 10);
+    ctx.lineTo(-18, 20);
+    ctx.lineTo(-14, 26);
+    ctx.lineTo(-24, 24);
+    ctx.lineTo(-20, 32);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-8, 10);
+    ctx.lineTo(-24, 24);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-18, 20);
+    ctx.lineTo(-20, 32);
+    ctx.stroke();
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   DRAW PARTICLES
+========================================================= */
+
+function drawParticles() {
+
+    particles.forEach(p => {
+
+        ctx.globalAlpha = p.life;
+
+        ctx.fillStyle = "#ffffff";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            p.x,
+            p.y,
+            3,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+    });
+
+    ctx.globalAlpha = 1;
+
+}
+
+
+/* =========================================================
+   LEVEL COMPLETE
+========================================================= */
+
+function levelComplete() {
+
+    if (!gameRunning)
+        return;
+
+    gameRunning = false;
+
+    stopMusic();
+
+    playLevelCompleteSound();
+
+    document.getElementById("levelScore")
+        .textContent = score;
+
+    document.getElementById("levelWaste")
+        .textContent = wasteCollected;
+
+    hideAllScreens();
+
+    if (currentLevel < 5) {
+
+        document.getElementById("levelComplete")
+            .classList.remove("hidden");
+
+    } else {
+
+        document.getElementById("totalScore")
+            .textContent = score;
+
+        document.getElementById("totalWaste")
+            .textContent =
+            levels[1].target +
+            levels[2].target +
+            levels[3].target +
+            levels[4].target +
+            levels[5].target;
+
+        document.getElementById("finalScreen")
+            .classList.remove("hidden");
+
+    }
+
+}
+
+
+/* =========================================================
+   NEXT LEVEL
+========================================================= */
+
+function nextLevel() {
+
+    resumeAudio();
+
+    playClickSound();
+
+    currentLevel++;
+
+    showFact();
+
+}
+
+
+function showFact() {
+
+    const facts = [
+
+        "Plastic waste can be transported by ocean currents over very large distances.",
+
+        "Marine animals can become trapped in discarded fishing gear and plastic waste.",
+
+        "Reducing single-use plastics can help reduce the amount of waste entering the environment.",
+
+        "Healthy oceans support biodiversity and provide food and livelihoods for millions of people.",
+
+        "Reusing, recycling and correctly disposing of waste can help reduce ocean pollution."
+
+    ];
+
+    const fact =
+        facts[
+            Math.min(
+                currentLevel - 2,
+                facts.length - 1
+            )
+        ];
+
+    document.getElementById("factText")
+        .textContent = fact;
+
+    hideAllScreens();
+
+    document.getElementById("factScreen")
+        .classList.remove("hidden");
+
+}
+
+
+function continueAfterFact() {
+
+    resumeAudio();
+
+    playClickSound();
+
+    hideAllScreens();
+
+    startLevel();
+
+}
+
+
+/* =========================================================
+   GAME OVER
+========================================================= */
+
+function gameOver() {
+
+    gameRunning = false;
+
+    stopMusic();
+
+    playGameOverSound();
+
+    document.getElementById("finalScore")
+        .textContent = score;
+
+    document.getElementById("finalWaste")
+        .textContent = wasteCollected;
+
+    hideAllScreens();
+
+    document.getElementById("gameOver")
+        .classList.remove("hidden");
+
+}
+
+
+/* =========================================================
+   PAUSE
+========================================================= */
+
+function togglePause() {
+
+    if (!gameRunning)
+        return;
+
+    playClickSound();
+
+    paused = !paused;
+
+    if (paused) {
+
+        document.getElementById("pauseButton")
+            .textContent = "RESUME";
+
+    } else {
+
+        document.getElementById("pauseButton")
+            .textContent = "PAUSE";
+
+        lastTime = performance.now();
+
+    }
+
+}
+
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
+
+function gameLoop(timestamp) {
+
+    const dt =
+        Math.min(
+            (timestamp - lastTime) / 1000,
+            0.05
+        );
+
+    lastTime = timestamp;
+
+    if (gameRunning && !paused) {
+
+        updatePlayer(dt);
+
+        updateAnimals(dt);
+
+        updateBubbles(dt);
+
+        updateParticles(dt);
+
+        updateTimer(dt);
+
+        checkCollisions();
+
+    }
+
+
+    drawOcean();
+
+    drawBubbles();
+
+    drawWaste();
+
+    drawAnimals();
+
+    drawParticles();
+
+    if (gameRunning)
+        drawPlayer();
+
+
+    requestAnimationFrame(gameLoop);
+
+}
+
+
+requestAnimationFrame(gameLoop);
+
+</script>
+
+</body>
+</html>
+
